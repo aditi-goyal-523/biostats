@@ -1,21 +1,24 @@
 library(epitools)
 library(abind)
+library(DescTools)
 
-
-make_table=function(dats, nrow, ncol, col_names=NULL, row_names=NULL){
+make_table=function(dats, nrow=2, ncol=2, col_names=c("case", "control"), row_names=c("outcome", "no outcome"), include_totals=FALSE){
   
   suppressWarnings({ 
     data = matrix(dats, nrow=nrow, ncol=ncol, byrow=TRUE)
-    
     table = as.table(data)
-    rowsums=rowSums(table)
-    table=cbind(table, rowsums)
+    colnames(table)=col_names
+    rownames(table)=row_names
     
-    colsums=colSums(table)
-    table=rbind(table, rowsums)
+    if (include_totals == TRUE){
+      rowsums=rowSums(table)
+      table=cbind(table, rowsums)
+      colsums=colSums(table)
+      table=rbind(table, rowsums)
+      colnames(table) = c(col_names, 'Totals')
+      rownames(table) = c(row_names, 'Totals')
+    }
     
-    colnames(table) = c(col_names, 'Totals')
-    rownames(table) = c(row_names, 'Totals')
     print(table)
     return(table)
   }) 
@@ -30,16 +33,29 @@ fisher_exact=function(t){
 }
 
 crude_odd_ratio=function(t){
-  return(oddsratio(t))
+  return(epitools::oddsratio(t))
 }
 
 crude_risk_ratio=function(t){
-  return(riskratio(t, rev="both"))
+  return(epitools::riskratio(t, rev="both"))
 }
 
 mcnemars_test=function(t){
   return(mcnemar.test(t))
 }
+
+mh_test=function(...){
+  # take in a list of 2x2 tables and calculate Cochran-Mantel-Haenszel Test
+  dat=abind::abind(..., along=3)
+  return(mantelhaen.test(dat))
+}
+
+breslow_day_test=function(...){
+  # take in a list of 2x2 tables and calculate the Breslow-Day test of homogeneity
+  dat=abind::abind(..., along=3)
+  return(DescTools::BreslowDayTest(dat))
+}
+
 
 breslowday.test = function(x, OR=NA, printORi.s=TRUE){
   ## function to compute the Breslow Day test of homogeneity for a 2 by 2 by k table
