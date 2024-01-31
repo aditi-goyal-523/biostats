@@ -1,6 +1,7 @@
 library(epitools)
 library(abind)
 library(DescTools)
+library(logistf)
 
 make_table=function(dats, nrow=2, ncol=2, col_names=c("case", "control"), row_names=c("outcome", "no outcome"), include_totals=FALSE){
   
@@ -189,4 +190,61 @@ logit.plot = function(data,predictor,outcome,numIntervals=10,spline=TRUE,spar=0.
     spline = smooth.spline(means[!is.infinite(logits)], logits[!is.infinite(logits)], spar=spar)
     lines(spline)  
   }
+}
+
+exact_logreg=function(formula,dataset){
+  return(logistf(formula, family = "binomial", dataset)
+  )
+}
+
+roc.curve = function(glm.fit,data,outcome,returnValues=FALSE,returnPred=FALSE,returnROC=FALSE,weights=NULL) {
+  #Make sure pROC package is present
+  if (!"package:pROC" %in% search()) {stop("This function requires the pROC package.")}
+  
+  #Check input
+  if (!is.character(outcome)) {stop("Outcome must be a string.")}
+  if (!is.null(weights) & !is.character(weights)) {stop("Weights argument must be a string.")}
+  if (sum(returnValues,returnPred,returnROC)>1) {stop("Select one output at a time.")}
+  
+  #Define outcome column by renaming it
+  outcomeIndex = which(colnames(data)==outcome)
+  names(data)[outcomeIndex] = "outcome"
+  
+  #Make prediction based on the fit and add to data frame
+  prediction = predict(glm.fit,type=c("response"))
+  data = data.frame(data,prediction)
+  
+  #Multiply rows based on weights variable if present
+  if (!is.null(weights)) {
+    data = data[rep(row.names(data), unlist(data[weights])), -(names(data)==weights)]
+  }
+  
+  #Calculate ROC curve
+  curve = roc(outcome~prediction,data=data)
+  plot(curve)    
+  print(curve)   #Summarizes the result, including the area under the curve
+  #By default, the plot function labels the x-axis as "Specificity" (from 1 to 0) instead of "1-specificity" from 0 to 1
+  
+  #Output, if requested
+  if (returnValues==TRUE) {
+    output = data.frame(curve$thresholds,curve$sensitivities,curve$specificities)
+    names(output) = c("threshold","sensitivity","specificity")
+    return(round(output,digits=10))   #rounding is to prevent display as scientific notation
+  }
+  
+  if (returnPred==TRUE) {
+    #For confidence intervals: calculate the predictions on the linear ("link") scale
+    linkPred = predict(glm.fit, type=c("link"), se.fit=TRUE)
+    
+    #Calculate the 95% confidence intervals, then convert back to the logistic scale using the inverse logit function
+    lower.limit = linkPred$fit - 1.96 * linkPred$se.fit
+    lower.limit = exp(lower.limit)/(1+exp(lower.limit))
+    upper.limit = linkPred$fit + 1.96 * linkPred$se.fit
+    upper.limit = exp(upper.limit)/(1+exp(upper.limit))
+    
+    output = data.frame(prediction, lower.limit, upper.limit)
+    return(round(output,digits=10))   #rounding is to prevent display as scientific notation
+  }
+  
+  if (returnROC==TRUE) {return(curve)}
 }
