@@ -248,3 +248,12 @@ roc.curve = function(glm.fit,data,outcome,returnValues=FALSE,returnPred=FALSE,re
   
   if (returnROC==TRUE) {return(curve)}
 }
+
+
+plot_ROC <- function(outcomes, pred_probs){
+  # takes in a list of outcomes as 0/1 and a list of predicted probabilities from the model
+  # e.g. outcomes=c(1,1,1,0,0,0,0,0), pred_probs=c(0.759, 0.759, 0.209, 0.154, 0.139, 0.685, 0.163, 0.132)
+  # outputs an ROC curve and the AUC
+  auc=pROC::roc(outcomes, pred_probs, plot=TRUE, auc=TRUE, legacy.axes = TRUE)$auc
+  return(auc)
+}
