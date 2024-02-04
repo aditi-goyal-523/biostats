@@ -2,6 +2,7 @@ library(epitools)
 library(abind)
 library(DescTools)
 library(logistf)
+library(pROC)
 
 make_table=function(dats, nrow=2, ncol=2, col_names=c("case", "control"), row_names=c("outcome", "no outcome"), include_totals=FALSE){
   
@@ -187,6 +188,8 @@ logit.plot = function(data,predictor,outcome,numIntervals=10,spline=TRUE,spar=0.
   
   #Plot a smoothing spline
   if (spline==TRUE) {
+    
+
     spline = smooth.spline(means[!is.infinite(logits)], logits[!is.infinite(logits)], spar=spar)
     lines(spline)  
   }
