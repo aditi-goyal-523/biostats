@@ -3,6 +3,8 @@ library(abind)
 library(DescTools)
 library(logistf)
 library(pROC)
+library(psych)
+library(lmtest)
 
 make_table=function(dats, nrow=2, ncol=2, col_names=c("case", "control"), row_names=c("outcome", "no outcome"), include_totals=FALSE){
   
@@ -259,4 +261,35 @@ plot_ROC <- function(outcomes, pred_probs){
   # outputs an ROC curve and the AUC
   auc=pROC::roc(outcomes, pred_probs, plot=TRUE, auc=TRUE, legacy.axes = TRUE)$auc
   return(auc)
+}
+
+
+standardize = function(data){
+  return(scale(data))
+}
+
+correlations = function(data){
+  return(cor(data, use = "complete.obs"))
+}
+
+calculate_pca = function(data, no_pcs, adjustment = "varimax"){
+  return(psych::principal(data, nfactors = no_pcs, rotate = adjustment))
+}
+
+scree_plot = function(pca_df){
+  # The input is the really any dataframe, but it can take the output from the "calculate_pca" function
+  return(plot(pca_df$values/sum(pca_df$values),
+              xlab="Prinical component",
+              ylab="Proportion of variance explained"))
+}
+
+pc_values = function(data, pca_df, chosen_pc){
+  # The goal of this function is to take the original dataframe and previously calculated PCs
+  # And then calculates individuals PC values
+  factor = apply(data, chosen_pc, function(x) sum(x*pca_df$weights[,chosen_pc]))
+  return(factor)
+}
+
+likelihood_ratio = function(glm_model){
+  return(lrtest(glm_model))
 }
