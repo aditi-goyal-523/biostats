@@ -1,3 +1,4 @@
+library(tidyverse)
 library(epitools)
 library(abind)
 library(DescTools)
@@ -291,5 +292,25 @@ pc_values = function(data, pca_df, chosen_pc){
 }
 
 likelihood_ratio = function(glm_model){
+  # This takes a glm model and runs the likelihood ratio on that model
   return(lrtest(glm_model))
+}
+
+
+propensity_scores = function(data, primary_predictor, covariates){
+  # The function calculates the propensity score for for a primary predictor given a vector of covariate names
+
+  # Build formula for propensity score 
+  # First combine the vector of covariates
+  # Then include the primary predictor as the outcome
+  formula = str_c(covariates, collapse = "+") %>% 
+    str_c(primary_predictor,"~",. )
+  
+  # now run the model then get the probabilities
+  prop_model = glm(formula,
+                   family = "binomial",
+                   data)
+  pscores = predict(prop_model, type = "response")
+  
+  return(pscores)
 }
