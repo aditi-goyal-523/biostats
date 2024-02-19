@@ -6,6 +6,7 @@ library(logistf)
 library(pROC)
 library(psych)
 library(lmtest)
+library(Matching)
 
 make_table=function(dats, nrow=2, ncol=2, col_names=c("case", "control"), row_names=c("outcome", "no outcome"), include_totals=FALSE){
   
@@ -313,4 +314,35 @@ propensity_scores = function(data, primary_predictor, covariates){
   pscores = predict(prop_model, type = "response")
   
   return(pscores)
+}
+
+pscore_matching = function(data, outcome, predictor, propensity_scores, range = 0.1){
+  # The function produces a new dataframe that matches individuals based on previously generated propensity scores
+  
+  # First pull the outcome and primary predictor data
+  # Outcome and predictor should be string
+  outcome_data = data %>% pull(outcome)
+  predictor_data = data %>% pull(predictor)
+  
+  #Find the matches. The range variable determines the range of scores for matching
+  matches = Match(outcome_data, predictor_data, propensity_scores,
+                  replace=F, caliper = range)
+  
+  # Create a dataframe for sorting the pairs
+  pairs = data.frame(c(1:length(matches$index.treated), 
+                       matches$index.treated, 
+                       matches$index.control))
+  names(pairs) = c("Index", "Treated", "Control")
+  
+  # Now match the data and remove non-matches
+  data$matches = NA
+  for (i in pairs$Treated) {
+    data$matches[i] = pairs$Index[which(pairs$Treated==i)] 
+  }
+  for (i in pairs$Control) {
+    data$matches[i] = pairs$Index[which(pairs$Control==i)]
+  }
+  data = data[!is.na(data$matches),]
+  
+  return(data)
 }
