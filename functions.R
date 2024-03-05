@@ -7,6 +7,7 @@ library(pROC)
 library(psych)
 library(lmtest)
 library(Matching)
+library(boot)
 
 make_table=function(dats, nrow=2, ncol=2, col_names=c("case", "control"), row_names=c("outcome", "no outcome"), include_totals=FALSE){
   
@@ -345,4 +346,22 @@ pscore_matching = function(data, outcome, predictor, propensity_scores, range = 
   data = data[!is.na(data$matches),]
   
   return(data)
+}
+
+stepwise_regression = function(data, formula, direction = c("both")){
+  # This is a function to run a logistic regression with stepwise variable selection
+  glm.fit = glm(formula = formula,
+                family = "binomial",
+                data = data)
+  
+  step.fit = stats::step(glm.fit, direction = direction)
+  
+  return(step.fit)
+  
+}
+
+bootstrap = function(data, custom_function, no_samples){
+  # This function creates a no_samples of bootstrapped samples from "data" and runs each of these
+  # functions through the custom_function input
+  return(boot(data, custom_function, no_samples))
 }
